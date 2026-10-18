@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Deadline Countdown
+Comment=Count down to your deadlines with daily reminders
+Exec=@EXEC@
+Icon=deadline-countdown
+Categories=Office;Calendar;Utility;
+StartupWMClass=deadlines

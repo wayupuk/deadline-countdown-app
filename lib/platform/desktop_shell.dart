@@ -64,6 +64,7 @@ class DesktopShell with WindowListener implements ShellActions {
     container.listen(settingsProvider, (_, _) => _updateTrayText());
   }
 
+  @override
   Future<bool> setLaunchAtLogin(bool enabled) async {
     try {
       enabled ? await launchAtStartup.enable() : await launchAtStartup.disable();

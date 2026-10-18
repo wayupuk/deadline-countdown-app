@@ -19,6 +19,7 @@ abstract class ShellActions {
   Future<void> quit();
   bool get trayAvailable;
   bool get hotKeyRegistered;
+  Future<bool> setLaunchAtLogin(bool enabled);
 }
 
 final shellActionsProvider = Provider<ShellActions?>((ref) => null);

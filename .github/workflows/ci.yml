@@ -12,12 +12,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '${{ env.FLUTTER_VERSION }}', channel: stable, cache: true }
+      # tray_manager's native code builds even for tests and needs GTK 3, X11 and Xi headers.
+      - run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libx11-dev libxi-dev
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter analyze
       - run: flutter test
 
-  # macOS is built locally (macOS CI minutes count 10× against the free allowance).
   build:
     needs: test
     strategy:
@@ -26,6 +27,7 @@ jobs:
         include:
           - { os: ubuntu-latest, target: linux, artifact: build/linux/x64/release/bundle }
           - { os: windows-latest, target: windows, artifact: build/windows/x64/runner/Release }
+          - { os: macos-latest, target: macos, artifact: build/macos/Build/Products/Release }
           - { os: ubuntu-latest, target: apk, artifact: build/app/outputs/flutter-apk/app-release.apk }
     runs-on: ${{ matrix.os }}
     steps:

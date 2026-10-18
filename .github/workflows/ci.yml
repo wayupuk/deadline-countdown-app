@@ -17,6 +17,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
+  # macOS is built locally (macOS CI minutes count 10× against the free allowance).
   build:
     needs: test
     strategy:
@@ -25,7 +26,6 @@ jobs:
         include:
           - { os: ubuntu-latest, target: linux, artifact: build/linux/x64/release/bundle }
           - { os: windows-latest, target: windows, artifact: build/windows/x64/runner/Release }
-          - { os: macos-latest, target: macos, artifact: build/macos/Build/Products/Release }
           - { os: ubuntu-latest, target: apk, artifact: build/app/outputs/flutter-apk/app-release.apk }
     runs-on: ${{ matrix.os }}
     steps:

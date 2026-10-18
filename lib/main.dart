@@ -58,11 +58,13 @@ Future<void> main() async {
     await shell?.showCalendar();
   });
   await shell?.init(container);
-  await container.read(notificationPermissionProvider.notifier).request();
-  await container.read(exactAlarmsProvider.notifier).refresh();
   _keepRemindersPlanned(container, reminders, osScheduling: osScheduling);
 
   runApp(UncontrolledProviderScope(container: container, child: const DeadlineApp()));
+
+  // Ask after the UI is up: the system prompt waits for the user, and the app must not sit on a blank window.
+  await container.read(notificationPermissionProvider.notifier).request();
+  await container.read(exactAlarmsProvider.notifier).refresh();
 }
 
 /// First launch on macOS: bring over the SwiftUI app's deadlines once.

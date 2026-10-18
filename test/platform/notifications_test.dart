@@ -19,6 +19,10 @@ class FakePort implements NotificationPort {
   Future<NotificationPermission> status() async => NotificationPermission.granted;
   @override
   Future<void> openSystemSettings() async {}
+  @override
+  Future<bool> exactAlarmsAllowed() async => true;
+  @override
+  Future<void> requestExactAlarms() async {}
 }
 
 void main() {

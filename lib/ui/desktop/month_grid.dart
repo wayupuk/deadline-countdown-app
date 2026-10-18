@@ -50,10 +50,20 @@ class MonthGrid extends ConsumerWidget {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 16, 8),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-          Text(monthName, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+        child: Row(children: [
+          // The title shrinks to fit narrow (phone) widths; the buttons keep their size.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+                Text(monthName, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                Text(yearText, style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ]),
+            ),
+          ),
           const SizedBox(width: 8),
-          Text(yearText, style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const Spacer(),
           IconButton.filledTonal(
               tooltip: 'Previous month', onPressed: () => notifier.moveMonth(-1), icon: const Icon(Icons.chevron_left_rounded)),

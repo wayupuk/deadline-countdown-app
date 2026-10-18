@@ -8,6 +8,7 @@ import 'state/services.dart';
 import 'state/shell.dart';
 import 'ui/desktop/main_window.dart';
 import 'ui/desktop/tray_popup.dart';
+import 'ui/mobile/home_tabs.dart';
 import 'ui/settings_page.dart';
 import 'ui/theme.dart';
 import 'ui/widgets/banners.dart';
@@ -52,8 +53,10 @@ class _DeadlineAppState extends ConsumerState<DeadlineApp> {
         : null;
 
     final Widget home;
-    if (Platform.isAndroid || shell == null) {
-      home = MainWindow(banner: banner, onOpenSettings: _openSettings); // Android layout arrives in Task 14.
+    if (Platform.isAndroid) {
+      home = HomeTabs(banner: banner);
+    } else if (shell == null) {
+      home = MainWindow(banner: banner, onOpenSettings: _openSettings);
     } else if (mode == ShellMode.popup) {
       home = TrayPopup(onOpenCalendar: shell.showCalendar, onOpenSettings: _openSettings, onQuit: shell.quit, banner: banner);
     } else {

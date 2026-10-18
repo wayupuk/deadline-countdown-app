@@ -32,6 +32,21 @@ class NotificationPermissionNotifier extends Notifier<NotificationPermission> {
   }
 }
 
+/// Android: whether reminders fire at the exact minute ("Alarms & reminders" permission).
+final exactAlarmsProvider = NotifierProvider<ExactAlarmsNotifier, bool>(ExactAlarmsNotifier.new);
+
+class ExactAlarmsNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  Future<void> refresh() async {
+    final services = ref.read(servicesProvider);
+    if (services != null) state = await services.notifications.exactAlarmsAllowed();
+  }
+
+  Future<void> request() async => ref.read(servicesProvider)?.notifications.requestExactAlarms();
+}
+
 /// How many reminders are currently pending (OS) or armed (in-app).
 final scheduledCountProvider = NotifierProvider<ScheduledCountNotifier, int>(ScheduledCountNotifier.new);
 

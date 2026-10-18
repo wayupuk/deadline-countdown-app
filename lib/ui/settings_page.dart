@@ -81,6 +81,17 @@ class SettingsPage extends ConsumerWidget {
           title: Text(inAppReminders ? 'Reminders armed (next 24 h)' : 'Scheduled reminders'),
           trailing: Text(permission == NotificationPermission.granted ? '$scheduled' : '—'),
         ),
+        if (Platform.isAndroid && services != null)
+          ListTile(
+            leading: const Icon(Icons.alarm_rounded),
+            title: const Text('On-time reminders'),
+            subtitle: Text(ref.watch(exactAlarmsProvider)
+                ? 'Reminders arrive at the exact minute.'
+                : 'Without "Alarms & reminders", reminders may arrive a few minutes late.'),
+            trailing: ref.watch(exactAlarmsProvider)
+                ? const Icon(Icons.check_circle_rounded, color: Color(0xFF30D158))
+                : TextButton(onPressed: () => ref.read(exactAlarmsProvider.notifier).request(), child: const Text('Allow')),
+          ),
         if (inAppReminders)
           const ListTile(
             leading: Icon(Icons.info_outline_rounded),

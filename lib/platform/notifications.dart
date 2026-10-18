@@ -21,6 +21,12 @@ abstract class NotificationPort {
   /// Immediate delivery (test notification, in-app timers on Windows/Linux).
   Future<void> show(String title, String body);
   Future<void> openSystemSettings();
+
+  /// Android only: whether reminders can fire at the exact minute. Always true elsewhere.
+  Future<bool> exactAlarmsAllowed();
+
+  /// Android only: opens the system "Alarms & reminders" page. Only call on a user action.
+  Future<void> requestExactAlarms();
 }
 
 typedef TimerStarter = Timer Function(Duration delay, void Function() callback);
@@ -111,10 +117,8 @@ class FlutterNotificationPort implements NotificationPort {
     if (Platform.isMacOS) {
       await _macos?.requestPermissions(alert: true, sound: true, badge: true);
     } else if (Platform.isAndroid) {
+      // Exact alarms are requested only from Settings (requestExactAlarms), never automatically.
       await _android?.requestNotificationsPermission();
-      if (await _android?.canScheduleExactNotifications() == false) {
-        await _android?.requestExactAlarmsPermission();
-      }
     }
     return status();
   }
@@ -137,6 +141,18 @@ class FlutterNotificationPort implements NotificationPort {
 
   /// Android: whether reminders can be exact (else they may arrive a few minutes late).
   bool get exactAlarms => _exactAlarms;
+
+  @override
+  Future<bool> exactAlarmsAllowed() async {
+    if (!Platform.isAndroid) return true;
+    _exactAlarms = await _android?.canScheduleExactNotifications() ?? false;
+    return _exactAlarms;
+  }
+
+  @override
+  Future<void> requestExactAlarms() async {
+    if (Platform.isAndroid) await _android?.requestExactAlarmsPermission();
+  }
 
   @override
   Future<void> cancelAll() => _plugin.cancelAll();

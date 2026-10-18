@@ -59,6 +59,7 @@ Future<void> main() async {
   });
   await shell?.init(container);
   await container.read(notificationPermissionProvider.notifier).request();
+  await container.read(exactAlarmsProvider.notifier).refresh();
   _keepRemindersPlanned(container, reminders, osScheduling: osScheduling);
 
   runApp(UncontrolledProviderScope(container: container, child: const DeadlineApp()));
@@ -100,6 +101,7 @@ void _keepRemindersPlanned(ProviderContainer container, ReminderService reminder
   AppLifecycleListener(onResume: () {
     container.read(nowProvider.notifier).refresh();
     container.read(notificationPermissionProvider.notifier).refresh();
+    container.read(exactAlarmsProvider.notifier).refresh();
     replan();
   });
 }

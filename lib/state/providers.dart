@@ -27,7 +27,7 @@ class ClockNotifier extends Notifier<DateTime> {
     _ticker = ticker;
     ticker.start((now) => state = now);
     // Edits can change which deadline is nearest, so re-plan the next tick.
-    ref.listen(deadlinesProvider, (_, __) => ticker.poke());
+    ref.listen(deadlinesProvider, (_, _) => ticker.poke());
     ref.onDispose(ticker.stop);
     return DateTime.now();
   }

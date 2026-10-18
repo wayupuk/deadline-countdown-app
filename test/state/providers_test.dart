@@ -15,7 +15,7 @@ void main() {
       container.dispose();
       await db.close();
     });
-    final sub = container.listen(nearestProvider, (_, __) {});
+    final sub = container.listen(nearestProvider, (_, _) {});
     final now = DateTime.now();
     Deadline dl(String id, Duration inFuture, Priority p) => Deadline(
         id: id, title: id, dueAt: now.add(inFuture), priority: p, createdAt: now.toUtc(), updatedAt: now.toUtc());

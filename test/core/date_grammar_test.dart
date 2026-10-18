@@ -58,6 +58,7 @@ void main() {
     expectDate('Flight Nov 5 7:30pm', DateTime(2026, 11, 5, 19, 30));
     expectDate('Lunch Nov 5 noon', DateTime(2026, 11, 5, 12));
     expectDate('Launch Nov 5 12am', DateTime(2026, 11, 5, 0));
+    expectDate('Nov 5 2030 9am: call mom', DateTime(2030, 11, 5, 9), matched: 'Nov 5 2030 9am');
   });
 
   test('month names inside ordinary words are not dates', () {

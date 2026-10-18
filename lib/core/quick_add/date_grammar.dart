@@ -58,7 +58,8 @@ final _numeric = RegExp(r'(?<![\d/])(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?(?![\d/])'
 final _relative = RegExp(
     '\\b(today|tonight|tomorrow|next week)\\b|\\b(?:(this|next)\\s+)?($_weekdayAlt)\\b|\\bin\\s+(\\d+)\\s+(days?|weeks?)\\b',
     caseSensitive: false);
-final _timeRe = RegExp('(?<![\\w:/])$_time(?![\\w:])', caseSensitive: false);
+// A trailing ":" is fine ("9am: call mom") unless digits follow it (a longer clock like 17:00:59).
+final _timeRe = RegExp('(?<![\\w:/])$_time(?!\\w|:\\d)', caseSensitive: false);
 final _gapAfter = RegExp(r'^[\s,]*$');
 final _gapBefore = RegExp(r'^[\s,]*(on\s+)?$', caseSensitive: false);
 

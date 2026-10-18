@@ -6,17 +6,33 @@ import 'package:deadlines/platform/notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakePort implements NotificationPort {
+  FakePort({this.failFirst = 0, this.delay = Duration.zero});
+  final int failFirst;
+  final Duration delay;
   final log = <String>[];
+  final pending = <String>{};
+  var _scheduleCalls = 0;
+
   @override
-  Future<void> cancelAll() async => log.add('cancelAll');
+  Future<void> cancelPending() async {
+    log.add('cancelPending');
+    pending.clear();
+  }
+
   @override
-  Future<void> schedule(PlannedReminder r) async => log.add('schedule ${r.id}');
+  Future<void> schedule(PlannedReminder r) async {
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    if (_scheduleCalls++ < failFirst) throw StateError('exact alarms not permitted');
+    log.add('schedule ${r.id}');
+    pending.add(r.id);
+  }
   @override
   Future<void> show(String title, String body) async => log.add('show $title');
   @override
   Future<NotificationPermission> requestPermission() async => NotificationPermission.granted;
   @override
   Future<NotificationPermission> status() async => NotificationPermission.granted;
+
   @override
   Future<void> openSystemSettings() async {}
   @override
@@ -32,7 +48,7 @@ void main() {
   test('reschedule cancels first and respects the cap', () async {
     final port = FakePort();
     final n = await ReminderService(port, osScheduling: true, cap: 60).replan([d], now);
-    expect(port.log.first, 'cancelAll');
+    expect(port.log.first, 'cancelPending');
     expect(n, 60);
     expect(port.log.where((l) => l.startsWith('schedule')).length, 60);
   });
@@ -43,7 +59,26 @@ void main() {
     final n = await service.replan([d], now);
     expect(n, 1); // only today's 09:00
     expect(port.log.where((l) => l.startsWith('schedule')), isEmpty);
+    expect(port.log, isNot(contains('cancelPending')), reason: 'in-app mode must not touch OS notifications');
     service.dispose();
+  });
+
+  test('one failing reminder does not stop the rest', () async {
+    final port = FakePort(failFirst: 1);
+    final n = await ReminderService(port, osScheduling: true, cap: 10).replan([d], now);
+    expect(n, 9);
+    expect(port.pending.length, 9);
+  });
+
+  test('overlapping replans end with exactly the latest plan', () async {
+    final port = FakePort(delay: const Duration(milliseconds: 2));
+    final service = ReminderService(port, osScheduling: true, cap: 5);
+    final early = d.copyWith(dueAt: DateTime(2026, 10, 25, 17));
+    final first = service.replan([d], now);
+    final second = service.replan([early], now);
+    await Future.wait([first, second]);
+    final expected = planReminders([early], now, limit: 5).map((r) => r.id).toSet();
+    expect(port.pending, expected);
   });
 
   test('in-app mode shows the reminder when its timer fires, and replan drops old timers', () async {

@@ -3,6 +3,10 @@ import 'models.dart';
 /// Filter value meaning "deadlines without a group".
 const noGroupFilter = '__none__';
 
+/// The filter to apply: a saved filter that names a group which no longer exists means "all".
+String? effectiveGroupFilter(String? filter, List<Group> groups) =>
+    filter == null || filter == noGroupFilter || groups.any((g) => g.id == filter) ? filter : null;
+
 Iterable<Deadline> _visible(Iterable<Deadline> all, String? groupFilter) => all.where((d) =>
     d.deletedAt == null &&
     (groupFilter == null || (groupFilter == noGroupFilter ? d.groupId == null : d.groupId == groupFilter)));

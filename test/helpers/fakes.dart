@@ -5,6 +5,7 @@ import 'package:deadlines/data/repository.dart';
 import 'package:deadlines/state/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -93,11 +94,12 @@ Deadline sampleDeadline(String title, DateTime due, {Priority priority = Priorit
     updatedAt: DateTime.now().toUtc());
 
 /// Pumps [child] inside a ProviderScope wired to [repo] and empty preferences.
-Future<void> pumpApp(WidgetTester tester, Widget child, {required FakeRepository repo, Map<String, Object> prefs = const {}}) async {
+Future<void> pumpApp(WidgetTester tester, Widget child,
+    {required FakeRepository repo, Map<String, Object> prefs = const {}, List<Override> overrides = const []}) async {
   SharedPreferences.setMockInitialValues(prefs);
   final sp = await SharedPreferences.getInstance();
   await tester.pumpWidget(ProviderScope(
-    overrides: [repositoryProvider.overrideWithValue(repo), sharedPreferencesProvider.overrideWithValue(sp)],
+    overrides: [repositoryProvider.overrideWithValue(repo), sharedPreferencesProvider.overrideWithValue(sp), ...overrides],
     child: MaterialApp(home: Scaffold(body: child)),
   ));
   await tester.pump();

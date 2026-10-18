@@ -70,7 +70,12 @@ class _GroupManagerState extends ConsumerState<GroupManager> {
         ],
       ),
     );
-    if (ok == true) await ref.read(repositoryProvider).deleteGroup(g.id);
+    if (ok == true) {
+      await ref.read(repositoryProvider).deleteGroup(g.id);
+      if (ref.read(settingsProvider).groupFilter == g.id) {
+        await ref.read(settingsProvider.notifier).update((s) => s.copyWith(groupFilter: null));
+      }
+    }
   }
 
   Future<void> _reorder(List<Group> groups, int from, int to) async {

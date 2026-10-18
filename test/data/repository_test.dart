@@ -75,13 +75,18 @@ void main() {
     expect(await repo.importDeadlines([dl('a'), dl('b')]), 1);
   });
 
-  test('corrupt file is moved aside', () async {
+  test('corrupt file is moved aside together with its journal', () async {
     final dir = await Directory.systemTemp.createTemp('dl');
     final file = File('${dir.path}/deadlines.db')..writeAsStringSync('not a database');
+    File('${dir.path}/deadlines.db-journal').writeAsStringSync('stale journal');
     final result = await AppDatabase.openAt(file);
     expect(result.recoveredFrom, isNotNull);
     expect(File(result.recoveredFrom!).existsSync(), isTrue);
     expect(await DeadlineRepository(result.db).watchDeadlines().first, isEmpty);
+    // No stale journal may be left to replay into the fresh database (SQLite discards it on the failed open).
+    expect(File('${dir.path}/deadlines.db-journal').existsSync(), isFalse);
+    await DeadlineRepository(result.db).saveDeadline(dl('fresh'));
+    expect((await DeadlineRepository(result.db).watchDeadlines().first).single.id, 'fresh');
     await result.db.close();
   });
 }

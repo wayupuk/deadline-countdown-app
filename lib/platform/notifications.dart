@@ -13,7 +13,9 @@ enum NotificationPermission { granted, denied, unknown }
 abstract class NotificationPort {
   Future<NotificationPermission> requestPermission();
   Future<NotificationPermission> status();
-  Future<void> cancelAll();
+
+  /// Cancels scheduled (not yet shown) notifications; notifications already delivered stay visible.
+  Future<void> cancelPending();
 
   /// OS-scheduled delivery (macOS, Android).
   Future<void> schedule(PlannedReminder r);
@@ -42,20 +44,53 @@ class ReminderService {
   final int cap;
   final TimerStarter _startTimer;
   final _timers = <Timer>[];
+  Future<int>? _running;
+  (List<Deadline>, DateTime)? _latest;
 
-  /// Cancels everything pending, then schedules the fresh plan. Returns how many reminders are pending.
-  Future<int> replan(List<Deadline> all, DateTime now) async {
+  /// Makes pending reminders match [all]. Replans run one at a time: a request that arrives while one is
+  /// running is folded into a single follow-up with the latest list, so stale plans never land on top.
+  /// Returns how many reminders are pending.
+  Future<int> replan(List<Deadline> all, DateTime now) {
+    _latest = (all, now);
+    return _running ??= _drain();
+  }
+
+  Future<int> _drain() async {
+    try {
+      var count = 0;
+      while (_latest != null) {
+        final (all, now) = _latest!;
+        _latest = null;
+        count = await _replanOnce(all, now);
+      }
+      return count;
+    } finally {
+      _running = null;
+    }
+  }
+
+  Future<int> _replanOnce(List<Deadline> all, DateTime now) async {
     _cancelTimers();
-    await port.cancelAll();
     final plan = planReminders(all, now, limit: cap, until: osScheduling ? null : now.add(const Duration(hours: 24)));
-    for (final r in plan) {
-      if (osScheduling) {
-        await port.schedule(r);
-      } else {
+    if (!osScheduling) {
+      // The app owns delivery here; nothing is scheduled with the OS, so there is nothing to cancel.
+      for (final r in plan) {
         _timers.add(_startTimer(r.fireAt.difference(now), () => port.show(r.title, r.body)));
       }
+      return plan.length;
     }
-    return plan.length;
+    await port.exactAlarmsAllowed(); // refresh before scheduling (Android may have revoked it)
+    await port.cancelPending();
+    var scheduled = 0;
+    for (final r in plan) {
+      try {
+        await port.schedule(r);
+        scheduled++;
+      } catch (_) {
+        // One reminder failing (e.g. a platform refusal) must not drop the rest.
+      }
+    }
+    return scheduled;
   }
 
   void dispose() => _cancelTimers();
@@ -75,7 +110,9 @@ class FlutterNotificationPort implements NotificationPort {
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
-  var _exactAlarms = true;
+
+  /// Android 14+ denies exact alarms by default, so assume no until asked.
+  var _exactAlarms = !Platform.isAndroid;
 
   /// Taps on a notification report the deadline id (the payload).
   Future<void> init({void Function(String deadlineId)? onOpen}) async {
@@ -155,19 +192,28 @@ class FlutterNotificationPort implements NotificationPort {
   }
 
   @override
-  Future<void> cancelAll() => _plugin.cancelAll();
+  Future<void> cancelPending() => _plugin.cancelAllPendingNotifications();
 
   @override
-  Future<void> schedule(PlannedReminder r) => _plugin.zonedSchedule(
-        id: stableNotificationId(r.id),
-        scheduledDate: tz.TZDateTime.from(r.fireAt, tz.local),
-        notificationDetails: _details,
-        androidScheduleMode:
-            _exactAlarms ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle,
-        title: r.title,
-        body: r.body,
-        payload: r.deadlineId,
-      );
+  Future<void> schedule(PlannedReminder r) async {
+    Future<void> zoned(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+          id: stableNotificationId(r.id),
+          scheduledDate: tz.TZDateTime.from(r.fireAt, tz.local),
+          notificationDetails: _details,
+          androidScheduleMode: mode,
+          title: r.title,
+          body: r.body,
+          payload: r.deadlineId,
+        );
+    if (!_exactAlarms) return zoned(AndroidScheduleMode.inexactAllowWhileIdle);
+    try {
+      await zoned(AndroidScheduleMode.exactAllowWhileIdle);
+    } catch (_) {
+      // Permission revoked since we checked: fall back to inexact for this and later reminders.
+      _exactAlarms = false;
+      await zoned(AndroidScheduleMode.inexactAllowWhileIdle);
+    }
+  }
 
   @override
   Future<void> show(String title, String body) => _plugin.show(

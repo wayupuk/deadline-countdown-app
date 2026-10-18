@@ -28,8 +28,8 @@ const _priorityOffsets = {
 };
 
 /// Every notification that should be pending now: daily reminders at each deadline's local reminder time
-/// (strictly after [now], strictly before due), priority extras, and a "due now" notice. Only the earliest
-/// [limit] are kept (OS caps); [until] bounds the window for in-app delivery.
+/// (strictly after [now], strictly before due), priority extras, and a "due now" notice. At most [limit]
+/// are kept (OS caps), due-now/priority first; [until] bounds the window for in-app delivery.
 List<PlannedReminder> planReminders(Iterable<Deadline> deadlines, DateTime now, {int limit = 60, DateTime? until}) {
   final out = <PlannedReminder>[];
   bool inWindow(DateTime t) => t.isAfter(now) && (until == null || !t.isAfter(until));
@@ -60,8 +60,12 @@ List<PlannedReminder> planReminders(Iterable<Deadline> deadlines, DateTime now, 
       out.add(_reminder(d, due, ReminderKind.due, '⏰ ${d.title}', 'This deadline is due now.'));
     }
   }
-  out.sort((a, b) => a.fireAt.compareTo(b.fireAt));
-  return out.take(limit).toList();
+  // Within the cap, "due now" and priority alerts come first; daily reminders fill the rest, earliest first.
+  int byTime(PlannedReminder a, PlannedReminder b) => a.fireAt.compareTo(b.fireAt);
+  final essential = out.where((r) => r.kind != ReminderKind.daily).toList()..sort(byTime);
+  final daily = out.where((r) => r.kind == ReminderKind.daily).toList()..sort(byTime);
+  final room = limit - essential.length;
+  return [...essential.take(limit), if (room > 0) ...daily.take(room)]..sort(byTime);
 }
 
 PlannedReminder _reminder(Deadline d, DateTime fire, ReminderKind kind, String title, String body) => PlannedReminder(

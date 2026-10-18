@@ -54,4 +54,12 @@ void main() {
     expect(z.progress(x.createdAt), 1.0);
     expect(x.isOverdue(DateTime(2026, 10, 11)), isTrue);
   });
+
+  test('a filter pointing at a deleted group falls back to all', () {
+    final g = Group(id: 'g1', name: 'Physics', color: DeadlineColor.teal, createdAt: DateTime.utc(2026), updatedAt: DateTime.utc(2026));
+    expect(effectiveGroupFilter('g1', [g]), 'g1');
+    expect(effectiveGroupFilter('gone', [g]), isNull);
+    expect(effectiveGroupFilter(noGroupFilter, const []), noGroupFilter);
+    expect(effectiveGroupFilter(null, [g]), isNull);
+  });
 }

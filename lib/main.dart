@@ -8,8 +8,8 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'app.dart';
-import 'core/mac_import.dart';
 import 'data/database.dart';
+import 'data/mac_import_runner.dart';
 import 'data/repository.dart';
 import 'platform/desktop_shell.dart';
 import 'platform/notifications.dart';
@@ -72,12 +72,8 @@ Future<void> _importFromMacApp(ProviderContainer container, DeadlineRepository r
   if (!Platform.isMacOS || container.read(settingsProvider).macImportDone) return;
   final file = File('${Platform.environment['HOME']}/Library/Application Support/DeadlineCountdown/deadlines.json');
   if (file.existsSync()) {
-    try {
-      final added = await repo.importDeadlines(parseMacDeadlines(await file.readAsString(), DateTime.now().toUtc()));
-      if (added > 0) notices.add('Imported $added deadline${added == 1 ? '' : 's'} from the Mac app.');
-    } on FormatException {
-      notices.add("Couldn't read the Mac app's deadlines, so nothing was imported.");
-    }
+    final notice = await importMacDeadlines(read: file.readAsString, repo: repo);
+    if (notice != null) notices.add(notice);
   }
   await container.read(settingsProvider.notifier).update((s) => s.copyWith(macImportDone: true));
 }

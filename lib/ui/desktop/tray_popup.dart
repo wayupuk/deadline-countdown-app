@@ -25,7 +25,7 @@ class TrayPopup extends ConsumerWidget {
     final now = ref.watch(nowProvider);
     final all = ref.watch(deadlinesProvider).value ?? const <Deadline>[];
     final groups = ref.watch(groupsProvider).value ?? const <Group>[];
-    final list = upcoming(all, now, groupFilter: settings.groupFilter);
+    final list = upcoming(all, now, groupFilter: effectiveGroupFilter(settings.groupFilter, groups));
     final total = upcoming(all, now).length;
     void setFilter(String? f) => ref.read(settingsProvider.notifier).update((s) => s.copyWith(groupFilter: f));
 
@@ -34,7 +34,7 @@ class TrayPopup extends ConsumerWidget {
           child: ChoiceChip(
             avatar: CircleAvatar(radius: 5, backgroundColor: color),
             label: Text(label),
-            selected: settings.groupFilter == value,
+            selected: effectiveGroupFilter(settings.groupFilter, groups) == value,
             showCheckmark: false,
             visualDensity: VisualDensity.compact,
             onSelected: (_) => setFilter(value),

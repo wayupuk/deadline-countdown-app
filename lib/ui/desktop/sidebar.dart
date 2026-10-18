@@ -22,7 +22,7 @@ class Sidebar extends ConsumerWidget {
     final now = ref.watch(nowProvider);
     final all = ref.watch(deadlinesProvider).value ?? const <Deadline>[];
     final groups = ref.watch(groupsProvider).value ?? const <Group>[];
-    final filter = settings.groupFilter;
+    final filter = effectiveGroupFilter(settings.groupFilter, groups);
     final up = upcoming(all, now, groupFilter: filter);
     final done = past(all, now, groupFilter: filter);
     final selectedId = ref.watch(calendarSelectionProvider).deadlineId;

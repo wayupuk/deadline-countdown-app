@@ -1,4 +1,5 @@
 import 'package:deadlines/core/models.dart';
+import 'package:deadlines/state/services.dart';
 import 'package:deadlines/ui/mobile/home_tabs.dart';
 import 'package:deadlines/ui/widgets/countdown_card.dart';
 import 'package:flutter/material.dart';
@@ -46,4 +47,20 @@ void main() {
     expect(find.text('Edit'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
   });
+
+  testWidgets('warns when reminders cannot be exact, with an Allow button', (tester) async {
+    tester.view.physicalSize = const Size(412, 915);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, const HomeTabs(), repo: FakeRepository(), overrides: [
+      exactAlarmsProvider.overrideWith(_NoExactAlarms.new),
+    ]);
+    expect(find.text('Reminders may arrive late'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Allow'), findsOneWidget);
+  });
+}
+
+class _NoExactAlarms extends ExactAlarmsNotifier {
+  @override
+  bool build() => false;
 }

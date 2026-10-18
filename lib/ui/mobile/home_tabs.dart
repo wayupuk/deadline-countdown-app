@@ -11,6 +11,7 @@ import '../settings_page.dart';
 import '../theme.dart';
 import '../widgets/countdown_card.dart';
 import '../widgets/deadline_editor.dart';
+import '../widgets/exact_alarms_banner.dart';
 import '../widgets/quick_add_field.dart';
 
 /// Phone layout: Upcoming / Calendar / Settings.
@@ -69,7 +70,7 @@ class _UpcomingTab extends ConsumerWidget {
     final now = ref.watch(nowProvider);
     final all = ref.watch(deadlinesProvider).value ?? const <Deadline>[];
     final groups = ref.watch(groupsProvider).value ?? const <Group>[];
-    final list = upcoming(all, now, groupFilter: settings.groupFilter);
+    final list = upcoming(all, now, groupFilter: effectiveGroupFilter(settings.groupFilter, groups));
     void setFilter(String? f) => ref.read(settingsProvider.notifier).update((s) => s.copyWith(groupFilter: f));
 
     Widget chip(String? value, String label, Color color) => Padding(
@@ -77,7 +78,7 @@ class _UpcomingTab extends ConsumerWidget {
           child: ChoiceChip(
             avatar: CircleAvatar(radius: 5, backgroundColor: color),
             label: Text(label),
-            selected: settings.groupFilter == value,
+            selected: effectiveGroupFilter(settings.groupFilter, groups) == value,
             showCheckmark: false,
             onSelected: (_) => setFilter(value),
           ),
@@ -87,6 +88,7 @@ class _UpcomingTab extends ConsumerWidget {
       appBar: AppBar(title: const Text('Deadlines')),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 96), children: [
         if (banner != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: banner),
+        const ExactAlarmsBanner(),
         const QuickAddField(),
         if (groups.isNotEmpty)
           SizedBox(

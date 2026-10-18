@@ -76,10 +76,23 @@ void main() {
     final capped = planReminders([...far, soon], now, limit: 60);
     final all = planReminders([...far, soon], now, limit: 100000);
     expect(capped.length, 60);
-    expect(capped.map((r) => r.fireAt), all.take(60).map((r) => r.fireAt));
+    // Every non-daily reminder is kept; daily ones fill the remaining room, earliest first.
+    final essential = all.where((r) => r.kind != ReminderKind.daily);
+    final daily = all.where((r) => r.kind == ReminderKind.daily).take(60 - essential.length);
+    expect(capped.map((r) => r.id).toSet(), {...essential.map((r) => r.id), ...daily.map((r) => r.id)});
     expect(capped.any((r) => r.deadlineId == 'Soon' && r.kind == ReminderKind.due), isTrue);
     final window = planReminders([...far, soon], now, limit: 100000, until: now.add(const Duration(hours: 24)));
     expect(window.every((r) => !r.fireAt.isAfter(now.add(const Duration(hours: 24)))), isTrue);
+  });
+
+  test('cap keeps every due-now and priority reminder before daily ones', () {
+    final now = DateTime(2026, 10, 18, 8);
+    final many = List.generate(40, (i) => dl('D$i', DateTime(2026, 10, 28, 17), p: i < 5 ? Priority.urgent : Priority.normal));
+    final plan = planReminders(many, now, limit: 60);
+    expect(plan.length, 60);
+    expect(plan.where((r) => r.kind == ReminderKind.due).length, 40);
+    expect(plan.where((r) => r.kind == ReminderKind.priority).length, 15);
+    expect(plan.map((r) => r.fireAt), [...plan.map((r) => r.fireAt)]..sort());
   });
 
   test('stable int ids', () {

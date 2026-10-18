@@ -8,8 +8,8 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../core/countdown.dart';
 import '../state/providers.dart';
+import 'linux_tray.dart';
 import '../state/shell.dart';
 
 /// Desktop chrome around the Flutter UI: tray icon + countdown text, tray popup vs calendar window
@@ -47,7 +47,7 @@ class DesktopShell with WindowListener implements ShellActions {
       },
     );
 
-    _initTray();
+    if (!Platform.isLinux || await linuxTrayHostAvailable()) _initTray();
     try {
       await hotKeyManager.unregisterAll();
       await hotKeyManager.register(_hotKey, keyDownHandler: (_) => togglePopup());
@@ -60,8 +60,8 @@ class DesktopShell with WindowListener implements ShellActions {
         appName: 'Deadline Countdown', appPath: Platform.resolvedExecutable, packageName: 'com.wayupuk.deadlines');
     await setLaunchAtLogin(container.read(settingsProvider).launchAtLogin);
 
-    container.listen(nearestProvider, (_, _) => _updateTrayText(), fireImmediately: true);
-    container.listen(settingsProvider, (_, _) => _updateTrayText());
+    container.listen(trayTextProvider, (_, _) => _updateTrayText(), fireImmediately: true);
+    container.listen(settingsProvider.select((s) => s.showTrayCountdown), (_, _) => _updateTrayText());
   }
 
   @override
@@ -116,11 +116,9 @@ class DesktopShell with WindowListener implements ShellActions {
   void _updateTrayText() {
     final tray = _tray;
     if (tray == null) return;
-    final next = _container.read(nearestProvider);
-    final settings = _container.read(settingsProvider);
-    final text = next == null ? null : shortCountdown(DateTime.now(), next.dueAt, precision: settings.precision);
-    if (Platform.isMacOS) tray.setTitle(settings.showTrayCountdown ? text : null);
-    tray.setTooltip(next == null ? 'Deadline Countdown' : '${next.title} — $text');
+    final text = _container.read(trayTextProvider);
+    if (Platform.isMacOS) tray.setTitle(_container.read(settingsProvider).showTrayCountdown ? text.title : null);
+    tray.setTooltip(text.tooltip);
   }
 
   Future<void> togglePopup() async {

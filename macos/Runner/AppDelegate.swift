@@ -3,7 +3,14 @@ import FlutterMacOS
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  // The app lives in the menu bar: closing the window keeps it running.
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    return false
+  }
+
+  // Clicking the Dock icon brings the window back.
+  override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    if !flag { mainFlutterWindow?.makeKeyAndOrderFront(nil) }
     return true
   }
 
